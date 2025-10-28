@@ -7,7 +7,7 @@ const UPLOAD_PRESET = "fsneakers_unsigned"; // 👈 đúng tên preset bạn t�
 export const uploadToCloudinary = async (file) => {
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("ml_default", UPLOAD_PRESET);
+  formData.append("fsneaker_unsigned", UPLOAD_PRESET);
 
   const res = await axios.post(
     `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,

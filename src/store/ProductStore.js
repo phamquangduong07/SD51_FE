@@ -1,17 +1,10 @@
 import { defineStore } from "pinia";
-import {
-  getAllSanPhamChiTietPage,
-  searchSanPhamChiTiet,
-  createSanPhamChiTiet,
-  updateSanPhamChiTiet,
-  deleteSanPhamChiTiet,
-  getAllLookups,
-} from "../api/admin/productService";
+import productService from "../api/admin/productService";
 
 export const useProductStore = defineStore("ProductStore", {
   state: () => ({
     items: [],
-    lookups: {}, // chứa danh sách lookup (hãng, màu, ...)
+    lookups: {},
     totalPages: 0,
     totalElements: 0,
     page: 0,
@@ -25,8 +18,26 @@ export const useProductStore = defineStore("ProductStore", {
     async fetchPage(page = 0) {
       this.loading = true;
       try {
-        const res = await getAllSanPhamChiTietPage(page, this.size);
-        this.items = res.data.content;
+        const res = await productService.getAllSanPhamChiTietPage(
+          page,
+          this.size
+        );
+        const products = res.data.content;
+
+        // Gắn ảnh từ API hình ảnh sản phẩm
+        const withImages = await Promise.all(
+          products.map(async (p) => {
+            try {
+              const imgs = await productService.getImagesByChiTietId(p.id);
+              p.hinhAnhSanPhamUrls = imgs.data.map((x) => x.url);
+            } catch {
+              p.hinhAnhSanPhamUrls = [];
+            }
+            return p;
+          })
+        );
+
+        this.items = withImages;
         this.totalPages = res.data.totalPages;
         this.totalElements = res.data.totalElements;
         this.page = page;
@@ -40,37 +51,76 @@ export const useProductStore = defineStore("ProductStore", {
     async search() {
       this.loading = true;
       try {
-        const res = await searchSanPhamChiTiet(
+        const res = await productService.searchSanPhamChiTiet(
           this.keyword,
           this.trangThai,
           this.page,
           this.size
         );
-        this.items = res.data.content;
+        const products = res.data.content;
+
+        const withImages = await Promise.all(
+          products.map(async (p) => {
+            try {
+              const imgs = await productService.getImagesByChiTietId(p.id);
+              p.hinhAnhSanPhamUrls = imgs.data.map((x) => x.url);
+            } catch {
+              p.hinhAnhSanPhamUrls = [];
+            }
+            return p;
+          })
+        );
+
+        this.items = withImages;
         this.totalPages = res.data.totalPages;
+        this.totalElements = res.data.totalElements;
+      } catch (e) {
+        console.error("Lỗi tìm kiếm:", e);
       } finally {
         this.loading = false;
       }
     },
 
-    async add(data) {
-      const res = await createSanPhamChiTiet(data);
-      this.items.unshift(res.data);
+    async add(data, imageFile) {
+      // 1. Tạo chi tiết sản phẩm
+      const res = await productService.createSanPhamChiTiet(data);
+      const newProduct = res.data;
+
+      // 2. Nếu có ảnh → upload
+      if (imageFile) {
+        try {
+          await productService.uploadImage(
+            imageFile,
+            `HA_${Date.now()}`, // mã ảnh tự động
+            newProduct.ma || "Ảnh sản phẩm",
+            1,
+            newProduct.id
+          );
+        } catch (err) {
+          console.error("Upload ảnh thất bại:", err);
+        }
+      }
+
+      // 3. Lấy ảnh vừa upload để hiển thị
+      const imgs = await productService.getImagesByChiTietId(newProduct.id);
+      newProduct.hinhAnhSanPhamUrls = imgs.data.map((x) => x.url);
+
+      this.items.unshift(newProduct);
     },
 
-    async update(ma, data) {
-      const res = await updateSanPhamChiTiet(ma, data);
-      const index = this.items.findIndex((i) => i.ma === ma);
+    async update(id, data) {
+      const res = await productService.updateSanPhamChiTiet(id, data);
+      const index = this.items.findIndex((i) => i.id === id);
       if (index !== -1) this.items[index] = res.data;
     },
 
-    async remove(ma) {
-      await deleteSanPhamChiTiet(ma);
-      this.items = this.items.filter((i) => i.ma !== ma);
+    async remove(id) {
+      await productService.deleteSanPhamChiTiet(id);
+      this.items = this.items.filter((i) => i.id !== id);
     },
 
     async fetchLookups() {
-      this.lookups = await getAllLookups();
+      this.lookups = await productService.getAllLookups();
     },
   },
 });
