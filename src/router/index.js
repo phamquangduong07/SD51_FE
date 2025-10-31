@@ -10,7 +10,8 @@ const routes = [
     children: [
       { path: '', name: 'AdminDashboard', component: Dashboard },
       { path: 'products', name: 'AdminProducts', component: Products },
-      {path: 'order', name: 'AdminOrders', component: Order }
+      { path: 'order', name: 'AdminOrders', component: Order },
+      { path: 'hoa-don', name: 'AdminHoaDon', component: Order }
     ]
   },
   { path: '/', redirect: '/admin' },

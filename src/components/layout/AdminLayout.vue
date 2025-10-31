@@ -36,7 +36,13 @@
         <li class="nav-item">
           <router-link class="nav-link text-white" to="/admin/order">
             <i class="fas fa-fw fa-shopping-cart"></i>
-            <span class="ms-2">Orders</span>
+            <span class="ms-2">Bán hàng tại quầy</span>
+          </router-link>
+        </li>
+            <li class="nav-item">
+          <router-link class="nav-link text-white" to="/admin/hoa-don">
+           <i class="fa fa-file-invoice-dollar"></i>
+            <span class="ms-2">Hóa đơn</span>
           </router-link>
         </li>
       </ul>
